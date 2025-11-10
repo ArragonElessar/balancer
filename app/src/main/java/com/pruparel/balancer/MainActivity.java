@@ -95,7 +95,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         // Check if this is our mAccelerometer object
         if (event.sensor.equals(mAccelerometer)){
             // Log this info out
-            Log.d(TAG, "onSensorChanged: typeAccuracy: " + accuracy + " x: " + ax + " y: " + ay + " z: " + az);
+//            Log.d(TAG, "onSensorChanged: typeAccuracy: " + accuracy + " x: " + ax + " y: " + ay + " z: " + az);
 
             // Update the UI Elements
             String x_val = String.format("%.3f", ax);
