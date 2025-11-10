@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">balancer</string>
+    <string name="x_axis_label">x-axis</string>
+    <string name="y_axis_label">y-axis</string>
+    <string name="z_axis_label">z-axis</string>
+    <string name="float_zero">0.00</string>
+    <string name="acceleration_units">m/s²</string>
+    <string name="update">Update</string>
+    <string name="basic_title">Accelerometer Values</string>
+    <string name="play">play</string>
+</resources>
