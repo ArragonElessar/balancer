@@ -1,11 +1,13 @@
 package com.pruparel.balancer;
 
+import android.content.Intent;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.util.Log;
+import android.widget.Button;
 import android.widget.TextView;
 
 import androidx.activity.EdgeToEdge;
@@ -25,7 +27,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private Sensor mAccelerometer;
 
     // UI Elements
-    TextView mXAxisVal, mYAxisVal, mZAxisVal;
+    private TextView mXAxisVal, mYAxisVal, mZAxisVal;
+
+    private Button mGameButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -42,6 +46,13 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         mXAxisVal = findViewById(R.id.x_axis_val);
         mYAxisVal = findViewById(R.id.y_axis_val);
         mZAxisVal = findViewById(R.id.z_axis_val);
+
+        // Button for Game Activity
+        mGameButton = findViewById(R.id.game_button);
+        mGameButton.setOnClickListener(v -> {
+            Log.d(TAG, "onCreate: Starting Game Activity");
+            startActivity(new Intent(this, GameActivity.class));
+        });
 
         // Print out a list of available sensors
         List<Sensor> sensorList = mSensorManager.getSensorList(Sensor.TYPE_ALL);

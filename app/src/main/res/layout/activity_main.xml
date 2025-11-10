@@ -119,9 +119,9 @@
         </LinearLayout>
 
         <Button
-            android:id="@+id/update_button"
+            android:id="@+id/game_button"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/update" />
+            android:text="@string/play" />
     </LinearLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>
