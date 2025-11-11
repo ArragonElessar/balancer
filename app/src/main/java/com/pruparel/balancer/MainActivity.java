@@ -29,7 +29,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     // UI Elements
     private TextView mXAxisVal, mYAxisVal, mZAxisVal;
 
-    private Button mGameButton;
+    private Button mGameButton, mMazeButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -52,6 +52,13 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         mGameButton.setOnClickListener(v -> {
             Log.d(TAG, "onCreate: Starting Game Activity");
             startActivity(new Intent(this, GameActivity.class));
+        });
+
+        // Button for Maze Activity
+        mMazeButton = findViewById(R.id.maze_button);
+        mMazeButton.setOnClickListener(v -> {
+            Log.d(TAG, "onCreate: Starting Maze Activity");
+            startActivity(new Intent(this, MazeActivity.class));
         });
 
         // Print out a list of available sensors
