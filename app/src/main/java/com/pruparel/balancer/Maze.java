@@ -24,11 +24,16 @@ public class Maze {
 
     private void SetSampleMaze(){
         // Generate a maze with all left walls -> see description
-        for(int row = 0; row < mMazeHeight; row++){
-            for(int col = 0; col < mMazeWidth; col++){
-                mMazeDescription[row][col] = 2; // Left and top
-            }
-        }
+//        for(int row = 0; row < mMazeHeight; row++){
+//            for(int col = 0; col < mMazeWidth; col++){
+//                mMazeDescription[row][col] = 2; // Left and top
+//            }
+//        }
+        // 2x8 MAZE
+        mMazeDescription = new int[][]{
+                {9, 3, 3, 3, 3, 3, 3, 6, 7 },
+                {10,3, 3, 3, 3, 3, 3, 5, 5 }
+        };
     }
     public Maze(float mazeStartX, float mazeStartY, int mazeHeight, int mazeWidth, float mazeSquareSizePx) {
         // Initialize variables and log values
@@ -61,24 +66,25 @@ public class Maze {
                 if( (( val >> 3 ) & 1 ) == 1 ){
                     Line leftLine = new Line(startX, startY, startX, startY + mMazeSquareSizePx);
                     lines.add(leftLine);
-//                    Log.d(TAG, "calculateMazeLines: Adding Left Line: (" + startX + "," + startY + ") -> (" + startX + "," + (startY + mMazeSquareSizePx) + ")");
                 }
 
                 // Check if we need a right line
                 if( (( val >> 2 ) & 1 ) == 1 ){
                     Line rightLine = new Line(startX + mMazeSquareSizePx, startY, startX + mMazeSquareSizePx, startY + mMazeSquareSizePx);
                     lines.add(rightLine);
-//                    Log.d(TAG, "calculateMazeLines: Adding Right Line: (" + startX + "," + startY + ") -> (" + startX + "," + (startY + mMazeSquareSizePx) + ")");
                 }
 
                 // Check if we need a top line
                 if( (( val >> 1 ) & 1 ) == 1 ){
                     Line topLine = new Line(startX, startY, startX + mMazeSquareSizePx, startY);
                     lines.add(topLine);
-//                    Log.d(TAG, "calculateMazeLines: Adding Right Line: (" + startX + "," + startY + ") -> (" + startX + "," + (startY + mMazeSquareSizePx) + ")");
                 }
-                // Check if we need a bottom line
 
+                // Check if we need a bottom line
+                if ( (val & 1) == 1){
+                    Line bottomLine = new Line(startX, startY + mMazeSquareSizePx, startX + mMazeSquareSizePx, startY + mMazeSquareSizePx);
+                    lines.add(bottomLine);
+                }
             }
         }
 
@@ -91,11 +97,11 @@ public class Maze {
          * Store them in a floating array and pass it to canvas.drawLines using paint.
          * */
         List<Line> lines = calculateMazeLines();
-        int numLines = lines.size();
-//        float[] points = new float[ 4 * numLines ];
-        for(int i = 0; i < numLines; i++) {
+        for(int i = 0; i < lines.size(); i++) {
             Line line = lines.get(i);
             canvas.drawLine(line.startX, line.startY, line.endX, line.endY, paint);
         }
     }
+
+
 }

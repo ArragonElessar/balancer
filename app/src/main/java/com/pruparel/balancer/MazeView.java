@@ -54,21 +54,20 @@ public class MazeView extends View {
         mBallY = 200;
 
         // Initialise the Maze object
-        int screenWidth = getWidth();
-        int screenHeight = getHeight();
-        Log.d(TAG, "init: Screen Dimensions: " + screenWidth + "x" + screenHeight);
         mMazeStrokeWidth = 5; // px
+
+        // TODO These parameters should all come from either MAZE Design
         mMazeStartX = 100; // Arbitrary
         mMazeStartY = 500; // Arbitrary
-        mMazeHeight = 10;
-        mMazeWidth = 10;
-        mMazeSquareSizePx = 100;
+        mMazeHeight = 2;
+        mMazeWidth = 8;
+        mMazeSquareSizePx = 100; // TODO This should come from screen parameters.
         Log.d(TAG, "Creating Maze with parameters: " + mMazeStartX + ", " + mMazeStartY + ", " + mMazeHeight + ", " + mMazeWidth);
         mMaze = new Maze(mMazeStartX, mMazeStartY, mMazeHeight, mMazeWidth, mMazeSquareSizePx); // TODO Can separate Square Size into height and width
 
         // Characteristics of the Maze
         mMazePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        mMazePaint.setColor(Color.GREEN);
+        mMazePaint.setColor(Color.WHITE);
         mMazePaint.setStrokeWidth(mMazeStrokeWidth); // 10 PX
         mMazePaint.setStyle(Paint.Style.STROKE); // Ensure we are drawing a line
 
