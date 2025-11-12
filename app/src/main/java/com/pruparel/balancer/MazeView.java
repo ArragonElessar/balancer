@@ -14,22 +14,15 @@ import androidx.annotation.Nullable;
 public class MazeView extends View {
 
     private static final String TAG = "MazeView";
-    private static final int FRAME_RATE = 2;
+    private static final int FRAME_RATE = 30;
     private static final long FRAME_TIME_MS = 1000 / FRAME_RATE;
 
-    // Ball related
-    private Paint mBallPaint;
-    private int mBallRadius;
-    private float mBallX, mBallY; // Use float for smoother positioning
-
-    // Maze related
-    private float mMazeStartX = 200, mMazeStartY = 400;
-    private int mMazeHeight, mMazeWidth;
-    private float mMazeSquareSizePx; // Number of pixels that a square size exhibits, should be minimum 2x the Ball Size.
-    private float mMazeStrokeWidth;
-    private Paint mMazePaint;
+    // Simple Ball
     private Maze mMaze;
 
+    private Vector3D<Float> mBallAcceleration; // TODO This should be populated by the accelerometer
+
+    // Ball related
     public MazeView(Context context){
         super(context);
         init(null);
@@ -45,32 +38,27 @@ public class MazeView extends View {
     }
 
     private void init(@Nullable AttributeSet attrs){
-        // Characteristics of the Ball
-        mBallPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        mBallPaint.setColor(Color.RED);
-        mBallPaint.setStyle(Paint.Style.FILL);
-        mBallRadius = 25;
-        mBallX = 200; // Initial Position
-        mBallY = 200;
 
-        // Initialise the Maze object
-        mMazeStrokeWidth = 5; // px
+        // Assign a constant +y acceleration to the ball
+        mBallAcceleration = new Vector3D<>(0.0f, 0.0f, 0.0f);
 
-        // TODO These parameters should all come from either MAZE Design
-        mMazeStartX = 100; // Arbitrary
-        mMazeStartY = 500; // Arbitrary
-        mMazeHeight = 2;
-        mMazeWidth = 8;
-        mMazeSquareSizePx = 100; // TODO This should come from screen parameters.
-        Log.d(TAG, "Creating Maze with parameters: " + mMazeStartX + ", " + mMazeStartY + ", " + mMazeHeight + ", " + mMazeWidth);
-        mMaze = new Maze(mMazeStartX, mMazeStartY, mMazeHeight, mMazeWidth, mMazeSquareSizePx); // TODO Can separate Square Size into height and width
+        Vector3D<Float> mazeStartPos = new Vector3D<>(100.0f, 500.0f, 0.0f);
+        Vector3D<Integer> numMazeSquares = new Vector3D<>(8, 3, 0);
+        float mazeSquareSize = 100.0f;
+        int mazeColor = Color.WHITE;
+        int ballColor = Color.RED;
+        float wallWidth = 2.0f;
 
-        // Characteristics of the Maze
-        mMazePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        mMazePaint.setColor(Color.WHITE);
-        mMazePaint.setStrokeWidth(mMazeStrokeWidth); // 10 PX
-        mMazePaint.setStyle(Paint.Style.STROKE); // Ensure we are drawing a line
+        mMaze = new Maze(mazeStartPos, numMazeSquares, mazeSquareSize, mazeColor, ballColor, wallWidth);
 
+        // update the ball's acceleration
+        mMaze.updateBallAcceleration(mBallAcceleration);
+    }
+
+    public void updateBallAcceleration( Vector3D<Float> acceleration ){
+        // Get the acceleration values from the sensor and update the ball acceleration
+        mBallAcceleration = acceleration;
+        mMaze.updateBallAcceleration(acceleration);
     }
 
     // Called when the view's size is first determined or changed
@@ -83,6 +71,10 @@ public class MazeView extends View {
     private final Runnable animationLoop = new Runnable() {
         @Override
         public void run() {
+
+            // Simulate this world
+            mMaze.updateBallAcceleration(mBallAcceleration); // TODO should be updated using sensor
+            mMaze.updateBallVelocityAndPosition();
 
             // Redraw
             invalidate();
@@ -109,12 +101,6 @@ public class MazeView extends View {
     @Override
     protected void onDraw(@NonNull Canvas canvas) {
         super.onDraw(canvas);
-        mMaze.draw(canvas, mMazePaint);
-        canvas.drawCircle(mBallX, mBallY, mBallRadius, mBallPaint);
-    }
-
-    public void updateBallPosition( int x, int y ){
-        mBallX = x;
-        mBallY = y;
+        mMaze.draw(canvas);
     }
 }
