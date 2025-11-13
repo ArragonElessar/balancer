@@ -17,15 +17,15 @@ import androidx.annotation.Nullable;
 public class MazeView extends View {
 
     private static final String TAG = "MazeView";
-    private static final int FRAME_RATE = 30;
+    private static final int FRAME_RATE = 60;
     private static final long FRAME_TIME_MS = 1000 / FRAME_RATE;
 
     // Simple Ball
     private Maze mMaze;
-
+    private boolean mGameWon;
     private Bitmap mEndSquareSprite;
 
-    private final Context mMazeContext;
+    private Context mMazeContext;
 
 
     private Vector3D<Float> mBallAcceleration; // TODO This should be populated by the accelerometer
@@ -33,28 +33,31 @@ public class MazeView extends View {
     // Ball related
     public MazeView(Context context){
         super(context);
-        this.mMazeContext = context;
-        init(null);
+        init(context, null);
     }
     public MazeView(Context context, @Nullable AttributeSet attrs) {
         super(context, attrs);
-        this.mMazeContext = context;
-        init(attrs);
+        init(context, attrs);
     }
 
     public MazeView(Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
-        this.mMazeContext = context;
-        init(attrs);
+        init(context, attrs);
     }
 
-    private void init(@Nullable AttributeSet attrs){
+    private void init(Context context, @Nullable AttributeSet attrs){
+
+        // Attach the context
+        this.mMazeContext = context;
+
+        // Game has not been won yet
+        this.mGameWon = false;
 
         // Initialize with no acceleration
         mBallAcceleration = new Vector3D<>(0.0f, 0.0f, 0.0f);
 
         Vector3D<Float> mazeStartPos = new Vector3D<>(100.0f, 500.0f, 0.0f);
-        Vector3D<Integer> numMazeSquares = new Vector3D<>(8, 3, 0);
+        Vector3D<Integer> numMazeSquares = new Vector3D<>(9, 7, 0);
         float mazeSquareSize = 100.0f;
         int mazeColor = Color.WHITE;
         int ballColor = Color.RED;
@@ -64,7 +67,7 @@ public class MazeView extends View {
         mEndSquareSprite = BitmapFactory.decodeResource(getResources(), R.drawable.ic_star);
         Log.d(TAG, "init Successfully loaded the star ? " + (mEndSquareSprite != null));
 
-        mMaze = new Maze(mazeStartPos, numMazeSquares, mazeSquareSize, mazeColor, ballColor, wallWidth);
+        mMaze = new Maze(mazeStartPos, numMazeSquares, mazeSquareSize, mazeColor, ballColor, wallWidth, false);
 
         // update the ball's acceleration
         mMaze.updateBallAcceleration(mBallAcceleration);
@@ -86,22 +89,17 @@ public class MazeView extends View {
     private final Runnable animationLoop = new Runnable() {
         @Override
         public void run() {
-
+            mGameWon = mMaze.isGameWon();
             // Check if we have won
-            if( mMaze.isGameWon() ){
-                // Raise a toast and stop every other activity
-                Toast toast = Toast.makeText(mMazeContext, "You won!", Toast.LENGTH_SHORT);
-                toast.show();
-            }
-            else {
+            if (!mGameWon){
                 // Simulate this world
                 mMaze.updateBallAcceleration(mBallAcceleration); // TODO should be updated using sensor
                 mMaze.updateBallVelocityAndPosition();
-
-                // Redraw
-                invalidate();
-                postDelayed(this, FRAME_TIME_MS);
             }
+            // Redraw
+            invalidate();
+            postDelayed(this, FRAME_TIME_MS);
+
         }
     };
 
@@ -124,7 +122,6 @@ public class MazeView extends View {
     @Override
     protected void onDraw(@NonNull Canvas canvas) {
         super.onDraw(canvas);
-        mMaze.draw(canvas);
-        mMaze.drawEndSquare(canvas, mEndSquareSprite); // Draw the end square
+        mMaze.draw(canvas, mEndSquareSprite);
     }
 }

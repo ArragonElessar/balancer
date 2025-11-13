@@ -1,5 +1,6 @@
 package com.pruparel.balancer;
 
+import android.annotation.SuppressLint;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -15,8 +16,9 @@ import java.util.Objects;
 public class Maze {
     private static final String TAG = "Maze";
 
-    private static final float COR = 0.2f; // Wall collision rebound energy constant
+    private static final float COR = 0.3f; // Wall collision rebound energy constant
     private static final float SIMULATION_FACTOR = 0.1f; // scale down the accelerations
+    private static final float FRICTION_SPEED_SLOWDOWN_FACTOR = 0.99f; // Slow down motion by 0.9 every frame
     private final List<Wall> mWalls;
     private final Vector3D<Integer> mNumMazeSquares; // x -> cols, y -> rows, z = unused.
     private int [][] mMazeDescription; // Last 4 bits -> L, R, T, B -> Indicate if these walls are present or not.
@@ -32,18 +34,26 @@ public class Maze {
     // Statistics for visuals
     private final Paint mBallDataPaint;
     private final Paint mAccDataPaint;
-    private String mBallData, mAccelerationData;
+    private final Paint mElapsedTimePaint, mVictoryMessagePaint;
+    private String mBallData, mAccelerationData, mElapsedTimeData, mVictoryMessageData;
+    private long mGameStartTime;
 
-    public Maze( Vector3D<Float> mazeStartPos, Vector3D<Integer> numMazeSquares, float mazeSquareSize, int mazeColor, int ballColor, float wallWidth){
+    private boolean mDebugBall, mGameWon;
+
+    public Maze( Vector3D<Float> mazeStartPos, Vector3D<Integer> numMazeSquares, float mazeSquareSize, int mazeColor, int ballColor, float wallWidth, boolean debugBall){
 
         // Game state should be not started yet
         Log.d(TAG, "Game initializing");
+        this.mGameWon = false;
 
         // Initialize all the parameters
         this.mMazeStartPos = mazeStartPos;
         this.mNumMazeSquares = numMazeSquares;
         this.mMazeSquareSize = mazeSquareSize;
         this.mWallWidth = wallWidth;
+
+        // Debug ball will be used to check the position, speed and accuracy of the ball
+        mDebugBall = debugBall;
 
         // Fetch the sample maze, TODO we can fetch maze levels from other permanent storage locations
         this.SampleMaze();
@@ -81,6 +91,20 @@ public class Maze {
         mAccDataPaint.setTextAlign(Paint.Align.CENTER);
         mAccelerationData = "NOT INITIALIZED YET";
 
+        // Initialize the elapsed time paint
+        mElapsedTimePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        mElapsedTimePaint.setColor(Color.GREEN);
+        mElapsedTimePaint.setTextSize(50f);
+        mElapsedTimePaint.setTextAlign(Paint.Align.CENTER);
+        mElapsedTimeData = "00:00:00 s";
+
+        // Victory Message Paint
+        mVictoryMessagePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        mVictoryMessagePaint.setColor(Color.GREEN);
+        mVictoryMessagePaint.setTextSize(75f);
+        mVictoryMessagePaint.setTextAlign(Paint.Align.CENTER);
+        mVictoryMessageData = "NOT INITIALIZED YET";
+
         // Initialize the Walls Container
         mWalls = new ArrayList<Wall>();
 
@@ -89,6 +113,9 @@ public class Maze {
 
         // Set the game to started
         Log.d(TAG, "user playing the game");
+
+        // Start counting the time
+        mGameStartTime = System.nanoTime();
     }
 
     private void ConstructWalls(){
@@ -140,34 +167,79 @@ public class Maze {
     private void SampleMaze(){
         // Sample Maze for testing. 3x8
         // Last 4 bits -> L, R, T, B -> Indicate if these walls are present or not.
+//        this.mMazeDescription = new int[][] {
+//                { 11, 3, 3, 3, 3, 3, 3, 6 },
+//                { 10, 3, 3, 3, 3, 3, 3, 5 },
+//                { 9, 3, 3, 3, 3, 3, 3, 7 }
+//        };
+//
+//        // Set the start and end squares for the ball
+//        this.mMazeStartSquare = new Vector3D<>(0, 0, 0);
+//        this.mMazeEndSquare = new Vector3D<>(7, 2, 0);
+
         this.mMazeDescription = new int[][] {
-                { 11, 3, 3, 3, 3, 3, 3, 6 },
-                { 10, 3, 3, 3, 3, 3, 3, 5 },
-                { 9, 3, 3, 3, 3, 3, 3, 7 }
+                { 11,  6, 11,  3,  3, 3,  6, 10, 7},
+                { 10,  1,  3,  3,  3, 2,  5,  9, 6},
+                {  9,  3,  3,  6, 14, 9,  7, 19, 5},
+                { 10,  3,  3,  5,  9, 2,  3,  1, 6},
+                {  8,  6, 10,  3,  3, 5, 10,  3, 4},
+                { 12, 13, 12, 10,  3, 3,  5, 10, 4},
+                {  9,  3,  5,  9,  7,11,  3,  5,13}
         };
 
-        // Set the start and end squares for the ball
-        this.mMazeStartSquare = new Vector3D<>(0, 0, 0);
-        this.mMazeEndSquare = new Vector3D<>(7, 2, 0);
+        this.mMazeStartSquare = new Vector3D<>(4, 0, 0);
+        this.mMazeEndSquare = new Vector3D<>(4, 6, 0);
 
         Log.d(TAG, "Added sample maze, of size y: " + this.mMazeDescription.length + "x" + this.mMazeDescription[0].length);
     }
 
-    public void draw( Canvas canvas ){
+    private long CalculateElapsedMilliSeconds(){
+        return (System.nanoTime() - mGameStartTime) / 1_000_000;
+    }
+
+    @SuppressLint("DefaultLocale")
+    public void draw(Canvas canvas, Bitmap mEndSquareSprite ){
+
+        // NOTE Order is important here
+        float textCenter = 510; // TODO we need a class member screen size to do this
+        if(mGameWon){
+            float textRowPx = mMazeStartPos.y + ( mNumMazeSquares.y + 2) * mMazeSquareSize;
+            mVictoryMessageData = "CONGRATS, YOU WON ... ";
+            canvas.drawText(mVictoryMessageData, textCenter, textRowPx, mVictoryMessagePaint);
+            canvas.drawText(mElapsedTimeData, textCenter, textRowPx + 100, mVictoryMessagePaint);
+        }
+        else {
+            long elapsedMs = CalculateElapsedMilliSeconds();
+            mElapsedTimeData = String.format("%02d:%02d:%02d s", elapsedMs / 60000, elapsedMs / 1000, elapsedMs % 100);
+        }
+        // Draw the ball
+        canvas.drawCircle( mBall.position.x, mBall.position.y, mBall.radius, mBallPaint );
+
         // Draw all the maze lines
         for( Wall wall : mWalls ){
             canvas.drawLine( wall.startPos.x, wall.startPos.y, wall.endPos.x, wall.endPos.y, mMazePaint );
         }
+        // Draw the statistics - if debug is enabled
+        if ( mDebugBall ){
+            canvas.drawText(mBallData, textCenter, 200, mBallDataPaint);
+            canvas.drawText(mAccelerationData, textCenter, 300, mAccDataPaint);
+        }
 
-        // Draw the ball
-        canvas.drawCircle( mBall.position.x, mBall.position.y, mBall.radius, mBallPaint );
+        // Draw the time elapsed string here
+        canvas.drawText(mElapsedTimeData, textCenter, 200, mElapsedTimePaint);
 
-        // Draw the statistics
-        float textCenter = 510;
-        canvas.drawText(mBallData, textCenter, 200, mBallDataPaint);
-        canvas.drawText(mAccelerationData, textCenter, 300, mAccDataPaint);
-
-        // Draw the sprite
+        // Draw the end square sprite
+        if ( mEndSquareSprite != null ){
+            Rect srcRect = new Rect(0, 0, mEndSquareSprite.getWidth(), mEndSquareSprite.getHeight());
+            Rect destRect = new Rect(
+                    (int) (mMazeStartPos.x + mMazeEndSquare.x * mMazeSquareSize),
+                    (int) (mMazeStartPos.y + mMazeEndSquare.y * mMazeSquareSize),
+                    (int) (mMazeStartPos.x + (mMazeEndSquare.x + 1) * mMazeSquareSize),
+                    (int) (mMazeStartPos.y + (mMazeEndSquare.y + 1) * mMazeSquareSize)
+            );
+            // Draw the sprite
+            canvas.drawBitmap(mEndSquareSprite, srcRect, destRect, null);
+        }
 
     }
 
@@ -178,7 +250,10 @@ public class Maze {
         mBall.acceleration = Vector3D.scalarProduct(acceleration, SIMULATION_FACTOR); // TODO Verify if this works.
 
         // Update the ball acceleration data
-        mAccelerationData = "ACC: ( " + roundOff(mBall.acceleration.x, 1) + ", " + roundOff(mBall.acceleration.y, 1) + ")";
+        if (mDebugBall)
+        {
+            mAccelerationData = "ACC: ( " + roundOff(mBall.acceleration.x, 1) + ", " + roundOff(mBall.acceleration.y, 1) + ")";
+        }
     }
 
     public boolean isGameWon(){
@@ -187,6 +262,7 @@ public class Maze {
         if( Objects.equals(currentBallSquare.x, mMazeEndSquare.x) && Objects.equals(currentBallSquare.y, mMazeEndSquare.y) )
         {
             Log.d(TAG, "GameState: Player Won");
+            mGameWon = true;
             return true;
         }
 
@@ -272,6 +348,7 @@ public class Maze {
 
         // Update the velocity according to acceleration
         mBall.velocity = Vector3D.add(mBall.velocity, mBall.acceleration);
+        mBall.velocity = Vector3D.scalarProduct(mBall.velocity, FRICTION_SPEED_SLOWDOWN_FACTOR);
 
         // Update the ball position
         mBall.position = Vector3D.add(mBall.position, mBall.velocity);
@@ -281,26 +358,14 @@ public class Maze {
         mBall.position.y = (float) Math.round(mBall.position.y);
 
         // Update the ball data text
-        mBallData = "POS: ( " + roundOff(mBall.position.x, 1) + ", " + roundOff(mBall.position.y, 1) + "), V: (" + roundOff(mBall.velocity.x, 1) + " , " + roundOff(mBall.velocity.y, 1) + ")";
+        if ( mDebugBall ){
+            mBallData = "POS: ( " + roundOff(mBall.position.x, 1) + ", " + roundOff(mBall.position.y, 1) + "), V: (" + roundOff(mBall.velocity.x, 1) + " , " + roundOff(mBall.velocity.y, 1) + ")";
+        }
 
     }
 
     private String roundOff(float val, int digits){
         String formatString = "%." + digits + "f";
         return String.format(formatString, val);
-    }
-
-    public void drawEndSquare(Canvas canvas, Bitmap mEndSquareSprite) {
-        if ( mEndSquareSprite != null ){
-            Rect srcRect = new Rect(0, 0, mEndSquareSprite.getWidth(), mEndSquareSprite.getHeight());
-            Rect destRect = new Rect(
-                    (int) (mMazeStartPos.x + mMazeEndSquare.x * mMazeSquareSize),
-                    (int) (mMazeStartPos.y + mMazeEndSquare.y * mMazeSquareSize),
-                    (int) (mMazeStartPos.x + (mMazeEndSquare.x + 1) * mMazeSquareSize),
-                    (int) (mMazeStartPos.y + (mMazeEndSquare.y + 1) * mMazeSquareSize)
-            );
-            // Draw the sprite
-            canvas.drawBitmap(mEndSquareSprite, srcRect, destRect, null);
-        }
     }
 }
