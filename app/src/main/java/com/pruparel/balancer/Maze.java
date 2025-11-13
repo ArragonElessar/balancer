@@ -248,7 +248,7 @@ public class Maze {
         mBall.position.y = (float) Math.round(mBall.position.y);
 
         // Update the ball data text
-        mBallData = "POS: ( " + roundOff(mBall.position.x, 1) + ", " + roundOff(mBall.position.y, 1) + "), V: (" + roundOff(mBall.velocity.x, 1) + " , " + roundOff(mBall.position.y, 1) + ")";
+        mBallData = "POS: ( " + roundOff(mBall.position.x, 1) + ", " + roundOff(mBall.position.y, 1) + "), V: (" + roundOff(mBall.velocity.x, 1) + " , " + roundOff(mBall.velocity.y, 1) + ")";
 
     }
 
